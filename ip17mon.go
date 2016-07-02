@@ -3,6 +3,7 @@ package ip17mon
 import (
 	"bytes"
 	"encoding/binary"
+        "sync"
 	"errors"
 	"io/ioutil"
 	"net"
@@ -12,15 +13,35 @@ const Null = "N/A"
 
 var (
 	ErrInvalidIp = errors.New("invalid ip format")
-	std          *Locator
+	std             *Locator
+        switchMutex      sync.RWMutex
+	olddata         *Locator
+	newdata         *Locator
 )
 
 // Init defaut locator with dataFile
 func Init(dataFile string) (err error) {
+        switchMutex.Lock()
+        defer switchMutex.Unlock()
+
 	if std != nil {
 		return
 	}
 	std, err = NewLocator(dataFile)
+        if err == nil {
+	    olddata, newdata = std, std
+        }
+	return
+}
+
+// Reload new data file
+func Reload(dataFile string) (err error) {
+        switchMutex.Lock()
+        defer switchMutex.Unlock()
+
+	olddata, err = NewLocator(dataFile)
+	olddata, newdata = newdata, olddata
+        std = newdata
 	return
 }
 
