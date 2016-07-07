@@ -194,7 +194,7 @@ func newLocationInfo(str []byte) *LocationInfo {
 			Isp:     string(fields[4]),
 		}
 	case 9:
-		//specific verion
+		//specific version
 		IntCountry_id, _ := strconv.ParseInt(string(fields[4]), 10, 64)
 		IntProvince_id, _ := strconv.ParseInt(string(fields[5]), 10, 64)
 		IntCity_id, _ := strconv.ParseInt(string(fields[6]), 10, 64)
