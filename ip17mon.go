@@ -3,45 +3,46 @@ package ip17mon
 import (
 	"bytes"
 	"encoding/binary"
-        "sync"
 	"errors"
 	"io/ioutil"
 	"net"
+	"strconv"
+	"sync"
 )
 
 const Null = "N/A"
 
 var (
 	ErrInvalidIp = errors.New("invalid ip format")
-	std             *Locator
-        switchMutex      sync.RWMutex
-	olddata         *Locator
-	newdata         *Locator
+	std          *Locator
+	switchMutex  sync.RWMutex
+	olddata      *Locator
+	newdata      *Locator
 )
 
 // Init defaut locator with dataFile
 func Init(dataFile string) (err error) {
-        switchMutex.Lock()
-        defer switchMutex.Unlock()
+	switchMutex.Lock()
+	defer switchMutex.Unlock()
 
 	if std != nil {
 		return
 	}
 	std, err = NewLocator(dataFile)
-        if err == nil {
-	    olddata, newdata = std, std
-        }
+	if err == nil {
+		olddata, newdata = std, std
+	}
 	return
 }
 
 // Reload new data file
 func Reload(dataFile string) (err error) {
-        switchMutex.Lock()
-        defer switchMutex.Unlock()
+	switchMutex.Lock()
+	defer switchMutex.Unlock()
 
 	olddata, err = NewLocator(dataFile)
 	olddata, newdata = newdata, olddata
-        std = newdata
+	std = newdata
 	return
 }
 
@@ -93,10 +94,15 @@ type Locator struct {
 }
 
 type LocationInfo struct {
-	Country string
-	Region  string
-	City    string
-	Isp     string
+	Country     string
+	Region      string
+	City        string
+	Isp         string
+	Country_id  int64
+	Province_id int64
+	City_id     int64
+	Isp_id      int64
+	Location_id uint64
 }
 
 // Find locationInfo by ip string
@@ -186,6 +192,24 @@ func newLocationInfo(str []byte) *LocationInfo {
 			Region:  string(fields[1]),
 			City:    string(fields[2]),
 			Isp:     string(fields[4]),
+		}
+	case 9:
+		//specific version
+		IntCountry_id, _ := strconv.ParseInt(string(fields[4]), 10, 64)
+		IntProvince_id, _ := strconv.ParseInt(string(fields[5]), 10, 64)
+		IntCity_id, _ := strconv.ParseInt(string(fields[6]), 10, 64)
+		IntIsp_id, _ := strconv.ParseInt(string(fields[7]), 10, 64)
+		IntLocation_id, _ := strconv.ParseUint(string(fields[8]), 10, 64)
+		info = &LocationInfo{
+			City:        string(fields[2]),
+			Country:     string(fields[0]),
+			Region:      string(fields[1]),
+			Isp:         string(fields[3]),
+			Country_id:  IntCountry_id,
+			Province_id: IntProvince_id,
+			City_id:     IntCity_id,
+			Isp_id:      IntIsp_id,
+			Location_id: IntLocation_id,
 		}
 	default:
 		panic("unexpected ip info:" + string(str))
